@@ -1,0 +1,13 @@
+[Desktop Entry]
+Encoding=UTF-8
+Name=AICHAIN
+Comment=Connect to the AICHAIN P2P Network
+Comment[de]=Verbinde mit dem AICHAIN peer-to-peer Netzwerk
+Comment[fr]=AICHAIN, monnaie virtuelle cryptographique pair à pair
+Comment[tr]=AICHAIN, eşten eşe kriptografik sanal para birimi
+Exec=aichain-qt %u
+Terminal=false
+Type=Application
+Icon=bitcoin128
+MimeType=x-scheme-handler/aichain;
+Categories=Office;Finance;
