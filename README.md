@@ -1,0 +1,2 @@
+# aichain-core
+aichain deamon
