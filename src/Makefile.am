@@ -314,7 +314,28 @@ libaichain_consensus_a_SOURCES = \
   uint256.h \
   utilstrencodings.cpp \
   utilstrencodings.h \
-  version.h
+  version.h \
+  crypto/lyra2DC/blake.c \
+  crypto/lyra2DC/bmw.c \
+  crypto/lyra2DC/cubehash.c \
+  crypto/lyra2DC/groestl.c \
+  crypto/lyra2DC/hashblock.h \
+  crypto/lyra2DC/keccak.c \
+  crypto/lyra2DC/Lyra2.c \
+  crypto/lyra2DC/Lyra2.h \
+  crypto/lyra2DC/Lyra2DC.c \
+  crypto/lyra2DC/Lyra2DC.h \
+  crypto/lyra2DC/skein.c \
+  crypto/lyra2DC/sph_blake.h \
+  crypto/lyra2DC/sph_bmw.h \
+  crypto/lyra2DC/sph_cubehash.h \
+  crypto/lyra2DC/sph_groestl.h \
+  crypto/lyra2DC/sph_keccak.h \
+  crypto/lyra2DC/sph_skein.h \
+  crypto/lyra2DC/Sponge.c \
+  crypto/lyra2DC/Sponge.h
+
+
 
 # common: shared between aichaind, and aichain-qt and non-server tools
 libaichain_common_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
