@@ -7,6 +7,7 @@
 #define BITCOIN_PRIMITIVES_BLOCK_H
 
 #include "primitives/transaction.h"
+#include "crypto/lyra2DC/Lyra2DC.h"
 #include "serialize.h"
 #include "uint256.h"
 
@@ -54,7 +55,8 @@ public:
     bool IsNull() const { return (nBits == 0); }
 
     uint256 GetHash() const;
-
+    uint256 GetPoWHash() const;	// used to replaced to use lyra2DC inside
+    uint256 ComputePowHash(uint32_t nNonce) const;	// used by internal miner!
     int64_t GetBlockTime() const { return (int64_t)nTime; }
 };
 

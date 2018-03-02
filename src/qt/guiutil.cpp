@@ -86,7 +86,7 @@ extern double NSAppKitVersionNumber;
 #endif
 
 namespace GUIUtil {
-const QString URI_SCHEME("bitcoincash");
+const QString URI_SCHEME("ait");
 
 QString dateTimeStr(const QDateTime &date) {
     return date.date().toString(Qt::SystemLocaleShortDate) + QString(" ") +

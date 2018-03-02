@@ -9,9 +9,40 @@
 #include "hash.h"
 #include "tinyformat.h"
 #include "utilstrencodings.h"
+#include "streams.h"
 
+#define USE_LYRA2DC
 uint256 CBlockHeader::GetHash() const {
     return SerializeHash(*this);
+}
+
+uint256 CBlockHeader::GetPoWHash() const
+{
+#ifndef USE_LYRA2DC
+	return SerializeHash(*this);
+#else
+	uint256 thash;
+	lyra2dc_hash(BEGIN(nVersion), BEGIN(thash));
+	return thash;
+#endif
+}
+
+uint256 CBlockHeader::ComputePowHash(uint32_t nNonce) const
+{
+	CBlockHeader tryBlockHeader = *this;
+	tryBlockHeader.nNonce = nNonce;	// set new nonce value to try ...
+
+	CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
+    ss << tryBlockHeader;
+    assert(ss.size() == 80);
+
+#ifndef USE_LYRA2DC
+	return SerializeHash(tryBlockHeader);
+#else
+	uint256 powHash;
+	lyra2dc_hash((const char*)&ss[0], BEGIN(powHash));
+	return powHash;
+#endif
 }
 
 std::string CBlock::ToString() const {
