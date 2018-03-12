@@ -224,6 +224,8 @@ AC_ARG_ENABLE([werror],
 AC_LANG_PUSH([C++])
 AX_CHECK_COMPILE_FLAG([-Werror],[CXXFLAG_WERROR="-Werror"],[CXXFLAG_WERROR=""])
 
+CFLAGS="$CFLAGS -fPIC"
+
 if test "x$enable_asan" = xyes; then
 	case $host in
   	*mingw*)
