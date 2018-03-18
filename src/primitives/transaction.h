@@ -11,6 +11,8 @@
 #include "serialize.h"
 #include "uint256.h"
 
+#include "pubkey.h"
+
 static const int SERIALIZE_TRANSACTION = 0x00;
 
 /** An outpoint - a combination of a transaction hash and an index n into its
@@ -182,6 +184,153 @@ public:
     std::string ToString() const;
 };
 
+typedef enum{
+	KEYTYPE_NULL,
+	KEYTYPE_INT64,
+	KEYTYPE_STRING
+}DB_KEYTYPE;
+
+class DB_unit {
+public:
+	uint8_t keyType;
+    std::vector<uint8_t> keyName;
+    std::vector<uint8_t> keyValue;
+
+	//! Construct 
+    DB_unit() { keyType=0; }
+	
+	DB_unit(std::string Name, int64_t Value){
+		uint8_t tmpValue[256];
+		uint8_t tmpLen;
+		int i;
+		
+		sprintf((char *)tmpValue,"%s",Name.c_str());
+		tmpLen=strlen((char *)tmpValue);
+		
+    	keyName.resize(tmpLen);
+		for(i=0;i<tmpLen;i++)
+			keyName[i]=tmpValue[i];
+		
+		tmpLen=0;
+		tmpValue[tmpLen++]=(Value>>56)&0xff;
+		tmpValue[tmpLen++]=(Value>>48)&0xff;
+		tmpValue[tmpLen++]=(Value>>40)&0xff;
+		tmpValue[tmpLen++]=(Value>>32)&0xff;
+		tmpValue[tmpLen++]=(Value>>24)&0xff;
+		tmpValue[tmpLen++]=(Value>>16)&0xff;
+		tmpValue[tmpLen++]=(Value>>8)&0xff;
+		tmpValue[tmpLen++]=(Value)&0xff;
+
+        keyValue.resize(tmpLen);
+		for(i=0;i<tmpLen;i++)
+			keyValue[i]=tmpValue[i];
+		
+		keyType = KEYTYPE_INT64;	// type: number   value is 64 bits
+	}
+	
+	DB_unit(std::string Name, std::string Value){
+		uint8_t tmpValue[256];
+		uint8_t tmpLen;
+		int i;
+
+		sprintf((char *)tmpValue,"%s",Name.c_str());
+		tmpLen=strlen((char *)tmpValue);
+    	keyName.resize(tmpLen);
+		for(i=0;i<tmpLen;i++)
+			keyName[i]=tmpValue[i];
+
+		sprintf((char *)tmpValue,"%s",Value.c_str());
+		tmpLen=strlen((char *)tmpValue);
+		
+    	keyValue.resize(tmpLen);
+		for(i=0;i<tmpLen;i++)
+			keyValue[i]=tmpValue[i];
+
+		keyType = KEYTYPE_STRING;	// type: string   value is string
+	}
+
+    ADD_SERIALIZE_METHODS;
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream &s, Operation ser_action) {
+        READWRITE(keyType);
+        READWRITE(keyName);
+        READWRITE(keyValue);
+    }
+};
+
+class ADU_unit {
+public:
+    /**
+     * Just store the serialized data.
+     * Each unit's length can very cheaply be computed from the first byte.
+     */
+    std::vector<uint8_t> ADU_Sig;
+    CPubKey deploy_pubkey;
+	uint32_t ADU_type;	// currently fixed to 1, all other values are reservied!
+	std::vector<DB_unit> keyValues;
+
+    //! Construct 
+    ADU_unit() { ADU_type = 1; keyValues.clear(); }
+
+    //! Implement serialization, as if this was a byte vector.
+    template <typename Stream> void Serialize(Stream &s) const {
+        s << ADU_Sig;
+        deploy_pubkey.Serialize(s);
+		s << ADU_type;
+		s << keyValues;
+    }
+    template <typename Stream> void Unserialize(Stream &s) {
+		ADU_Sig.clear();
+		s >> ADU_Sig;
+        deploy_pubkey.Unserialize(s);
+		s >> ADU_type;
+		keyValues.clear();
+		s >> keyValues;
+    }
+};
+
+typedef enum{
+	AEU_OP_NOTDEFINED,
+	AEU_OP_READ,
+	AEU_OP_DELETE,
+	AEU_OP_WRITE
+}AEU_OP_CODE;
+
+class AEU_unit {
+public:
+    /**
+     * Just store the serialized data.
+     * Each unit's length can very cheaply be computed from the first byte.
+     */
+    std::vector<uint8_t> AEU_Sig;
+	uint256 ADU_txid;
+	CPubKey usr_pubkey;
+	uint8_t op_code;	// AEU_OP_CODE
+	std::vector<DB_unit> keyValues;
+
+    //! Construct 
+    AEU_unit() { AEU_Sig.clear(); keyValues.clear(); }
+
+    //! Implement serialization, as if this was a byte vector.
+    template <typename Stream> void Serialize(Stream &s) const {
+        s << AEU_Sig;
+		s << ADU_txid;
+        usr_pubkey.Serialize(s);
+		s << op_code;
+		s << keyValues;
+    }
+    template <typename Stream> void Unserialize(Stream &s) {
+		AEU_Sig.clear();
+		s >> AEU_Sig;
+		s >> ADU_txid;
+        usr_pubkey.Unserialize(s);
+		s >> op_code;
+		keyValues.clear();
+		s >> keyValues;
+    }
+};
+
 struct CMutableTransaction;
 
 /**
@@ -202,6 +351,14 @@ inline void UnserializeTransaction(TxType &tx, Stream &s) {
     /* We read a non-empty vin. Assume a normal vout follows. */
     s >> tx.vout;
     s >> tx.nLockTime;
+	if(tx.nVersion & 0x08000000)
+	{
+		s >> tx.adu_unit;
+	}
+	else if(tx.nVersion & 0x04000000)
+	{
+		s >> tx.aeu_unit;
+	}
 }
 
 template <typename Stream, typename TxType>
@@ -210,6 +367,14 @@ inline void SerializeTransaction(const TxType &tx, Stream &s) {
     s << tx.vin;
     s << tx.vout;
     s << tx.nLockTime;
+	if(tx.nVersion & 0x08000000)
+	{
+		s << tx.adu_unit;
+	}
+	else if(tx.nVersion & 0x04000000)
+	{
+		s << tx.aeu_unit;
+	}
 }
 
 /** The basic transaction that is broadcasted on the network and contained in
@@ -236,6 +401,8 @@ public:
     const std::vector<CTxOut> vout;
     const uint32_t nLockTime;
 
+	const std::vector<ADU_unit> adu_unit;	// when nVersion & 0x08000000 > 0
+	const std::vector<AEU_unit> aeu_unit;	// when nVersion & 0x04000000 > 0
 private:
     /** Memory only. */
     const uint256 hash;
@@ -309,6 +476,9 @@ struct CMutableTransaction {
     std::vector<CTxOut> vout;
     uint32_t nLockTime;
 
+	std::vector<ADU_unit> adu_unit;	// when nVersion & 0x08000000 > 0
+	std::vector<AEU_unit> aeu_unit;	// when nVersion & 0x04000000 > 0
+    
     CMutableTransaction();
     CMutableTransaction(const CTransaction &tx);
 

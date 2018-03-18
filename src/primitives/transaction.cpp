@@ -53,10 +53,10 @@ std::string CTxOut::ToString() const {
 }
 
 CMutableTransaction::CMutableTransaction()
-    : nVersion(CTransaction::CURRENT_VERSION), nLockTime(0) {}
+    : nVersion(CTransaction::CURRENT_VERSION), nLockTime(0), adu_unit(), aeu_unit() {}
 CMutableTransaction::CMutableTransaction(const CTransaction &tx)
     : nVersion(tx.nVersion), vin(tx.vin), vout(tx.vout),
-      nLockTime(tx.nLockTime) {}
+      nLockTime(tx.nLockTime), adu_unit(tx.adu_unit), aeu_unit(tx.aeu_unit) {}
 
 uint256 CMutableTransaction::GetId() const {
     return SerializeHash(*this, SER_GETHASH, 0);
@@ -76,13 +76,13 @@ uint256 CTransaction::GetHash() const {
  */
 CTransaction::CTransaction()
     : nVersion(CTransaction::CURRENT_VERSION), vin(), vout(), nLockTime(0),
-      hash() {}
+      adu_unit(), aeu_unit(), hash() {}
 CTransaction::CTransaction(const CMutableTransaction &tx)
     : nVersion(tx.nVersion), vin(tx.vin), vout(tx.vout),
-      nLockTime(tx.nLockTime), hash(ComputeHash()) {}
+      nLockTime(tx.nLockTime), adu_unit(tx.adu_unit), aeu_unit(tx.aeu_unit), hash(ComputeHash()){}
 CTransaction::CTransaction(CMutableTransaction &&tx)
     : nVersion(tx.nVersion), vin(std::move(tx.vin)), vout(std::move(tx.vout)),
-      nLockTime(tx.nLockTime), hash(ComputeHash()) {}
+      nLockTime(tx.nLockTime), adu_unit(std::move(tx.adu_unit)), aeu_unit(std::move(tx.aeu_unit)), hash(ComputeHash()) {}
 
 Amount CTransaction::GetValueOut() const {
     Amount nValueOut = 0;
